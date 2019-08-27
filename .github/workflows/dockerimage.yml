@@ -1,0 +1,35 @@
+name: Docker Image CI
+
+on:
+  schedule:
+  - cron: 0 2 * * 1-5
+
+jobs:
+
+  build:
+ 
+    runs-on: ubuntu-18.04
+ 
+    steps:
+    - uses: actions/checkout@master
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+    - name: Deploy application
+      run: docker-compose -p spotlight up --no-start
+    - name: Wait for application to come online
+    - name: Run DB scripts
+      run: |
+        docker-compose -p spotlight run app bundle exec rake db:create
+        docker-compose -p spotlight run app bundle exec rake db:migrate
+    - name: Create initial admin user
+      run: docker-compose -p spotlight run app bundle exec rake spotlight:initialize
+    - name: Create default exhibits
+      run: docker-compose -p spotlight run app bundle exec rake db:seed
+    - name: Deploy the entire application
+      run: |
+        cd /opt/state-portal
+        docker-compose -p spotlight up -d
+    - name: Wait for application to fully deploy
+      run: docker cp -L solr/configsets/um $(docker ps -q -f "name=spotlight_solr"):/opt/solr/server/solr/configsets
+    - name: Create Solr core
+      run: docker exec $(docker ps -q -f "name=spotlight_solr") solr create_core -c portal -d um
