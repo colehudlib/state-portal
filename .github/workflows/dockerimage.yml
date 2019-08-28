@@ -14,7 +14,7 @@ jobs:
     - uses: actions/checkout@master
     - name: Deploy application
       run: docker-compose -p spotlight -f docker-compose-production.yml up --no-start
-    - name: Wait for application to come online
+#     - name: Wait for application to come online
     - name: Run DB scripts
       run: |
         docker-compose -p spotlight -f docker-compose-production.yml run app bundle exec rake db:create
